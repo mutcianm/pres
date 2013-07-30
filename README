@@ -1,0 +1,9 @@
+        pres - a small library for embeding resource files
+
+LICENSE
+
+
+ABOUT
+
+pres could be used to both embed files in executable and to access them in runtime
+
