@@ -35,6 +35,7 @@ struct stream_t{
     FILE* file;
     struct header_t header;
     int mode;
+    unsigned int* pos;
 };
 
 int pres_init(struct stream_t* stream, const char* outfilename, const char* mode);
@@ -44,5 +45,6 @@ int pres_strip(const char* target);
 
 int pres_add(struct stream_t* stream, char* resname);
 int pres_read(struct stream_t* stream, char* resname, char* buf, unsigned int num);
+char* pres_read1(struct stream_t* stream, char* resname);
 
 #endif

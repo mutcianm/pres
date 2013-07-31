@@ -43,6 +43,15 @@ int head_add(struct header_t* head, char* str, unsigned int offset, unsigned int
     return PRES_SUCESS;
 }
 
+int head_find(struct header_t* head, char* key){
+	int i;
+	for(i = 0; i < head->dictsize; ++i){
+		if(!strcmp(head->dict[i], key))
+			return i;
+	}
+	return -1;
+}
+
 int head_write(struct stream_t* stream){
     int i;
     struct header_t* head = &stream->header; 
@@ -51,16 +60,16 @@ int head_write(struct stream_t* stream){
     for(i = 0; i < head->dictsize; ++i){
         unsigned int keylen = strlen(head->dict[i]) + 1;
         unsigned int keylen_f = htonl(keylen);
-        head_len += fwrite(&keylen_f, sizeof(keylen_f), 1, f);
+        head_len += sizeof(keylen_f)*fwrite(&keylen_f, sizeof(keylen_f), 1, f);
         head_len += fwrite(head->dict[i], sizeof(char), keylen, f);
         head->sizes[i] = htonl(head->sizes[i]);
-        head_len += fwrite(&head->sizes[i], sizeof(head->sizes[i]), 1, f);
+        head_len += sizeof(head->sizes[i])*fwrite(&head->sizes[i], sizeof(head->sizes[i]), 1, f);
         head->offsets[i] = htonl(head->offsets[i]);
-        head_len += fwrite(&head->offsets[i], sizeof(head->sizes[i]), 1, f);
+        head_len += sizeof(head->sizes[i])*fwrite(&head->offsets[i], sizeof(head->sizes[i]), 1, f);
     }
     head_len += sizeof(head->dictsize) + sizeof(head->totalsize) + sizeof(head_len) + sizeof(MAGICK);
     head->totalsize += head_len;
-    printf("%X %X %X\n", head->dictsize, head->totalsize, head_len);
+//    printf("%X %X %X\n", head->dictsize, head->totalsize, head_len);
     head->dictsize = htonl(head->dictsize);
     head->totalsize = htonl(head->totalsize);
     head_len = htonl(head_len);
@@ -80,29 +89,29 @@ int head_read(FILE* f, struct header_t* head){
         printf("magick number mismatch %X\n", magick_read);
         return PRES_BADMAGICK;
     }
-    unsigned int totalsize = 0;
-    unsigned int head_len = 0;
+    unsigned int head_len, totalsize, dictsize;
     fseek(f, -4*sizeof(unsigned int), SEEK_END);
-    fread(&head->dictsize, sizeof(head->dictsize), 1, f);
-    fread(&head->totalsize, sizeof(head->totalsize), 1, f);
+    fread(&dictsize, sizeof(head->dictsize), 1, f);
+    fread(&totalsize, sizeof(head->totalsize), 1, f);
     fread(&head_len, sizeof(head_len), 1, f);
-    head->dictsize = ntohl(head->dictsize);
-    head->totalsize = ntohl(head->totalsize);
+    dictsize = ntohl(dictsize);
+    totalsize = ntohl(totalsize);
     head_len = ntohl(head_len);
-    fseek(f, -head_len, SEEK_END);           //rewind to header start
-    int i;
-    printf("%X %X %X\n", head->dictsize, head->totalsize, head_len);
-    scanf("%d", &i);
-    for(int i = 0; i < head->dictsize; ++i){
+    fseek(f, -(int)head_len, SEEK_END);           //rewind to header start
+//    printf("%X %X %X\n", dictsize, totalsize, head_len);
+    for(int i = 0; i < dictsize; ++i){
         unsigned int keylen, size, offset;
         fread(&keylen, sizeof(keylen), 1, f);
+        keylen = ntohl(keylen);
         char* key = (char*)malloc(keylen);
         fread(key, sizeof(char), keylen, f);
         fread(&size, sizeof(size), 1, f);
         fread(&offset, sizeof(offset), 1, f);
+        size = ntohl(size);
+        offset = ntohl(offset);
         head_add(head, key, offset, size);
     }
-
+    head->totalsize = totalsize;
     return PRES_SUCESS;
 }
 
@@ -155,10 +164,10 @@ int pres_add(struct stream_t* stream, char* resname){
     fseek(src, 0, SEEK_END);
     unsigned int fsize = ftell(src);
     fseek(src, 0, SEEK_SET);
-    if(stream->header.dictsize == 0)
+    if(stream->header.pos == 0)
         newoffset = 0;
     else
-        newoffset = stream->header.offsets[stream->header.pos] + 1;
+        newoffset = stream->header.sizes[stream->header.pos-1];
     head_add(&stream->header, resname, newoffset, fsize);
     char buffer[BUF_SIZE];
     int numread = 0;
@@ -173,9 +182,27 @@ int pres_add(struct stream_t* stream, char* resname){
     return PRES_SUCESS;
 }
 
+char* pres_read1(struct stream_t* stream, char* resname){
+	if((stream->mode == P_MODE_BAD) || (stream->mode == P_MODE_WRITE))
+		return NULL;
+	int i = head_find(&stream->header, resname);
+	if(i < 0)
+		return NULL;
+	unsigned int offset, size;
+	offset = stream->header.offsets[i];
+	size = stream->header.sizes[i];
+	char* result = (char*)malloc(size);
+	fseek(stream->file, -(int)(stream->header.totalsize - offset), SEEK_END);
+	int numread = fread(result, sizeof(char), size, stream->file);
+	if(numread <= 0){
+		free(result);
+		return NULL;
+	}
+	return result;
+}
 
 int pres_shutdown(struct stream_t* stream){
-    head_write(stream);
+    if(stream->mode == P_MODE_WRITE) head_write(stream);
     fclose(stream->file);
     if((stream->mode == P_MODE_WRITE) || (stream->mode == P_MODE_BAD)) return PRES_SUCESS;    //we don't allocate strings in write mode
     int i;

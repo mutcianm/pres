@@ -8,6 +8,8 @@ int main(int argc, char** argv){
     pres_shutdown(&stream);
     pres_init(&stream, "res.txt", "rb");
 
+    char* str = pres_read1(&stream, "2.txt");
+    printf("%s\n", str);
     pres_shutdown(&stream);
     return 0;
 }
