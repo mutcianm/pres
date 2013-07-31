@@ -1,20 +1,20 @@
-CC=clang
+CC=gcc
 CFLAGS=-O2 -Wall -g
-LDFLAGS=-c
-ALIB=util.a
-SOLIB=util.so
-PUTIL=prestool
 
-all: test util
+all: prestool
 
-static:
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $(ALIB) util.c
-
-test: static
-	$(CC) $(CFLAGS) -o tester tester.c $(ALIB)
+prestool: pres.o tool.c
+	$(CC) $(CFLAGS) -o $@ tool.c pres.o
 	
-util: static
-	$(CC) $(CFLAGS) -o $(PUTIL) tool.c $(ALIB)
+pres.o: util.c
+	$(CC) $(CFLAGS) -c -o $@ util.c
+	
+pres.so: util.c
+	$(CC) $(CFLAGS) -fPIC -shared -o $@ util.c
+	
+tester: pres.o tester.c
+	$(CC) $(CFLAGS) -o $@ tester.c pres.o
+	
 
 clean:
-	rm $(ALIB) $(PUTIL) tester
+	rm -f *.o *.so prestool tester

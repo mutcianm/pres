@@ -1,15 +1,17 @@
 #include"util.h"
 
 int main(int argc, char** argv){
+	if(argc != 2){
+		printf("usage: ./tester key\nappend resorces to tester with prestool first\n");
+		return 1;
+	}
     struct stream_t stream;
-    pres_init(&stream, "res.txt", "wb+");
-    pres_add(&stream, "1.txt");
-    pres_add(&stream, "2.txt");
-    pres_shutdown(&stream);
-    pres_init(&stream, "tester", "rb");
-
-    char* str = pres_read1(&stream, "2.txt");
-    printf("%s\n", str);
+    pres_init(&stream, argv[0], "rb");
+    char* str = pres_read1(&stream, argv[1]);
+    if(str)
+    	printf("%s\n", str);
+    else
+    	printf("no value foud for key %s\n", argv[1]);
     pres_shutdown(&stream);
     return 0;
 }

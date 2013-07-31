@@ -99,7 +99,8 @@ int head_read(FILE* f, struct header_t* head){
     head_len = ntohl(head_len);
     fseek(f, -(int)head_len, SEEK_END);           //rewind to header start
 //    printf("%X %X %X\n", dictsize, totalsize, head_len);
-    for(int i = 0; i < dictsize; ++i){
+    int i;
+    for(i = 0; i < dictsize; ++i){
         unsigned int keylen, size, offset;
         fread(&keylen, sizeof(keylen), 1, f);
         keylen = ntohl(keylen);
@@ -116,7 +117,7 @@ int head_read(FILE* f, struct header_t* head){
 }
 
 int pres_init(struct stream_t* stream, const char* outfilename, const char* mode){
-    if(!strcmp(mode, "wb+")){
+    if(!strcmp(mode, "wb+") || !strcmp(mode, "ab") || !strcmp(mode, "ab+")){
         stream->mode = P_MODE_WRITE;
     } else if (!strcmp(mode, "rb")) {
         stream->mode = P_MODE_READ;
@@ -220,9 +221,8 @@ int pres_read(struct stream_t* stream, char* resname, char* buf, unsigned int nu
 	int i = head_find(&stream->header, resname);
 	if(i < 0)
 		return PRES_NOKEY;
-	unsigned int offset, size;
+	unsigned int offset;
 	offset = stream->header.offsets[i];
-	size = stream->header.sizes[i];
 	fseek(stream->file, -(int)(stream->header.totalsize - offset), SEEK_END);
 	int numread = fread(buf, sizeof(char), num, stream->file);
 	if(numread < num) return PRES_FILE_ERR;
