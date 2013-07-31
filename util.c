@@ -128,7 +128,7 @@ int pres_init(struct stream_t* stream, const char* outfilename, const char* mode
     if(!stream->file) return PRES_FILE_ERR;
     head_init(&stream->header);
     if(stream->mode == P_MODE_READ)
-        head_read(stream->file, &stream->header);
+        return head_read(stream->file, &stream->header);
     return PRES_SUCESS;
 }
 
@@ -190,7 +190,7 @@ int pres_add(struct stream_t* stream, char* resname){
     if(stream->header.pos == 0)
         newoffset = 0;
     else
-        newoffset = stream->header.sizes[stream->header.pos-1];
+        newoffset = stream->header.sizes[stream->header.pos-1] + stream->header.offsets[stream->header.pos-1];
     head_add(&stream->header, resname, newoffset, fsize);
     char buffer[BUF_SIZE];
     int numread = 0;
@@ -203,6 +203,30 @@ int pres_add(struct stream_t* stream, char* resname){
         }
     }
     return PRES_SUCESS;
+}
+
+int pres_getsize(struct stream_t* stream, char* key){
+	if((stream->mode == P_MODE_BAD) || (stream->mode == P_MODE_WRITE))
+		return -1;
+	int i = head_find(&stream->header, key);
+	if(i < 0)
+		return -1;
+	return stream->header.sizes[i];
+}
+
+int pres_read(struct stream_t* stream, char* resname, char* buf, unsigned int num){
+	if((stream->mode == P_MODE_BAD) || (stream->mode == P_MODE_WRITE))
+		return PRES_FILE_ERR;
+	int i = head_find(&stream->header, resname);
+	if(i < 0)
+		return PRES_NOKEY;
+	unsigned int offset, size;
+	offset = stream->header.offsets[i];
+	size = stream->header.sizes[i];
+	fseek(stream->file, -(int)(stream->header.totalsize - offset), SEEK_END);
+	int numread = fread(buf, sizeof(char), num, stream->file);
+	if(numread < num) return PRES_FILE_ERR;
+	return PRES_SUCESS;
 }
 
 char* pres_read1(struct stream_t* stream, char* resname){
@@ -235,4 +259,3 @@ int pres_shutdown(struct stream_t* stream){
     return PRES_SUCESS;
 }
 
-int pres_read(struct stream_t* stream, char* resname, char* buf, unsigned int num);

@@ -17,4 +17,4 @@ util: static
 	$(CC) $(CFLAGS) -o $(PUTIL) tool.c $(ALIB)
 
 clean:
-	rm $(ALIB) tester
+	rm $(ALIB) $(PUTIL) tester

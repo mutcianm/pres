@@ -20,6 +20,7 @@
 #define PRES_BAD_MODE   3
 #define PRES_MEM_ERROR  4
 #define PRES_BADMAGICK  5
+#define PRES_NOKEY		6
 
 struct header_t{
     char**  dict;       //array of string keys
@@ -40,12 +41,14 @@ struct stream_t{
 };
 
 int pres_init(struct stream_t* stream, const char* outfilename, const char* mode);
-int pres_shutdown(struct stream_t* stream);
+int pres_add(struct stream_t* stream, char* resname);
 int pres_glue(const char* src, const char* target);
 int pres_strip(const char* target);
 
-int pres_add(struct stream_t* stream, char* resname);
+int pres_getsize(struct stream_t* stream, char* key);
 int pres_read(struct stream_t* stream, char* resname, char* buf, unsigned int num);
 char* pres_read1(struct stream_t* stream, char* resname);
+
+int pres_shutdown(struct stream_t* stream);
 
 #endif
