@@ -2,7 +2,7 @@
 #include<arpa/inet.h>
 
 #define TABLE_INIT_SIZE 8
-#define BUF_SIZE 256
+#define BUF_SIZE 1024
 
 void head_init(struct header_t* head){
     head->dict = (char**)malloc(sizeof(char*)*TABLE_INIT_SIZE);
@@ -135,6 +135,8 @@ int pres_init(struct stream_t* stream, const char* outfilename, const char* mode
 int pres_glue(const char* src, const char* target){
     FILE* out = fopen(target, "ab+");
     FILE* in = fopen(src, "rb");
+    if(!in || !out)
+    	return PRES_FILE_ERR;
     char buffer[BUF_SIZE];
     unsigned int numread;
     while((numread = fread(buffer, sizeof(char), BUF_SIZE, in)) != 0){
@@ -148,7 +150,28 @@ int pres_glue(const char* src, const char* target){
     return PRES_SUCESS;
 
 }
-int pres_strip(const char* target);
+int pres_strip(const char* target){
+	FILE* f = fopen(target, "rb");
+    fseek(f, -(sizeof(int)), SEEK_END);
+    int magick_read;
+    fread(&magick_read, sizeof(int), 1, f);
+    if(magick_read != MAGICK){
+        printf("magick number mismatch %X\n", magick_read);
+        return PRES_BADMAGICK;
+    }
+    unsigned int head_len, totalsize, dictsize;
+    fseek(f, -4*sizeof(unsigned int), SEEK_END);
+    fread(&dictsize, sizeof(dictsize), 1, f);
+    fread(&totalsize, sizeof(totalsize), 1, f);
+    fread(&head_len, sizeof(head_len), 1, f);
+    dictsize = ntohl(dictsize);
+    totalsize = ntohl(totalsize);
+    head_len = ntohl(head_len);
+    fseek(f, 0, SEEK_END);
+    size_t fsize = ftell(f);
+    fclose(f);
+    return truncate(target, fsize-totalsize);
+}
 
 int pres_add(struct stream_t* stream, char* resname){
     if(stream->mode != P_MODE_WRITE)

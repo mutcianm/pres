@@ -6,7 +6,7 @@ int main(int argc, char** argv){
     pres_add(&stream, "1.txt");
     pres_add(&stream, "2.txt");
     pres_shutdown(&stream);
-    pres_init(&stream, "res.txt", "rb");
+    pres_init(&stream, "tester", "rb");
 
     char* str = pres_read1(&stream, "2.txt");
     printf("%s\n", str);
