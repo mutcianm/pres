@@ -12,11 +12,11 @@ char* helpstr = "prestool - pres manipulation utility\n"
 		"USAGE\n"
 		"\tprestool [options] <input files ...>\n"
 		"OPTIONS\n"
-		" -a filename\tadd list of input files to resource file filename\n"
-		" -g filename\tglue first resource file from filelist to file filename\n"
-		" -s filename\tstrip resources from file filename\n"
+		" -a resfile\tadd list of input files to resource file resfile\n"
+		" -g target res\tglue res resource file to file target\n"
+		" -s target\tstrip resources from file target\n"
 		" -i resfile\tprint res file content summary\n"
-		" -r resfile key\tread specified key from resfile to stdout\n"
+		" -r res key\tread specified key from file res to stdout\n"
 		" -h\t\tprint this help message\n";
 
 void helpexit(){
