@@ -12,7 +12,7 @@ pres.o: util.c
 pres.so: util.c
 	$(CC) $(CFLAGS) -fPIC -shared -o $@ util.c
 	
-tester: pres.o tester.c
+tester: prestool tester.c 
 	$(CC) $(CFLAGS) -o $@ tester.c pres.o
 	
 

@@ -37,12 +37,12 @@ int main(int argc, char** argv){
 			if(i+1 == argc) helpexit();
 			char* out = argv[i+1];
 			struct stream_t stream;
-			if(pres_init(&stream, out, "ab+") != PRES_SUCESS)
+			if(pres_init(&stream, out, "ab+") != PRES_SUCCESS)
 				pexit("Failed initializing resource file");
 			int j;
 			for(j = i+2; j < argc; ++j){
 				int ret = pres_add(&stream, argv[j]);
-				if(ret != PRES_SUCESS)
+				if(ret != PRES_SUCCESS)
 					pexit("failed adding resource");
 			}
 			pres_shutdown(&stream);
@@ -50,12 +50,12 @@ int main(int argc, char** argv){
 		} else if(!strcmp(argv[i], "-g")){
 			if(i+2 == argc) helpexit();
 			int ret = pres_glue(argv[i+2], argv[i+1]);
-			if(ret != PRES_SUCESS)
+			if(ret != PRES_SUCCESS)
 				pexit("failed to glue");
 			break;
 		} else if(!strcmp(argv[i], "-s")){
 			if(i+1 == argc) helpexit();
-			if(pres_strip(argv[i+1]) != PRES_SUCESS)
+			if(pres_strip(argv[i+1]) != PRES_SUCCESS)
 				pexit("failed sripping resources from file");
 			break;
 		} else if(!strcmp(argv[i], "-h")){
@@ -64,8 +64,19 @@ int main(int argc, char** argv){
 		} else if(!strcmp(argv[i], "-i")){
 			if(i+1 == argc) helpexit();
 			struct stream_t stream;
-			if(pres_init(&stream, argv[i+1], "rb") != PRES_SUCESS)
-				pexit("Failed initializing resource file");
+			switch (pres_init(&stream, argv[i+1], "rb")){
+				case PRES_BADMAGICK:
+					error(1, 0, "Magic number not found! File is corrupt or not a resfile at all");
+					/* no break */
+				case PRES_FILE_ERR:
+					pexit("File IO error");
+					/* no break */
+				case PRES_SUCCESS:
+					break;
+				default:
+					pexit("Unknown error happened");
+					/* no break */
+			}
 			struct header_t* head = &stream.header;
 			printf("entries:%d totalsize:%d\n", head->dictsize, head->totalsize);
 			int j;
@@ -76,7 +87,7 @@ int main(int argc, char** argv){
 		} else if(!strcmp(argv[i], "-r")){
 			if(i+2 == argc) helpexit();
 			struct stream_t stream;
-			if(pres_init(&stream, argv[i+1], "rb") != PRES_SUCESS)
+			if(pres_init(&stream, argv[i+1], "rb") != PRES_SUCCESS)
 				pexit("Failed initializing resource file");
 			char* buf = pres_read1(&stream, argv[i+2]);
 			if(!buf)
