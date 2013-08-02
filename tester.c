@@ -6,7 +6,7 @@ int main(int argc, char** argv){
 		return 1;
 	}
     struct stream_t stream;
-    pres_init(&stream, argv[0], "rb");
+    pres_init(&stream, argv[0], "rb", 0);
     char* str = pres_read1(&stream, argv[1]);
     if(str)
     	printf("%s\n", str);

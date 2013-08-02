@@ -32,12 +32,13 @@ void pexit(const char* mess){
 int main(int argc, char** argv){
 	if(argc == 1) helpexit();
 	int i;
+	unsigned level = 0;
 	for(i = 1; i < argc; ++i){
 		if(!strcmp(argv[i], "-a")){
 			if(i+1 == argc) helpexit();
 			char* out = argv[i+1];
 			struct stream_t stream;
-			if(pres_init(&stream, out, "ab+") != PRES_SUCCESS)
+			if(pres_init(&stream, out, "ab+", level) != PRES_SUCCESS)
 				pexit("Failed initializing resource file");
 			int j;
 			for(j = i+2; j < argc; ++j){
@@ -64,7 +65,7 @@ int main(int argc, char** argv){
 		} else if(!strcmp(argv[i], "-i")){
 			if(i+1 == argc) helpexit();
 			struct stream_t stream;
-			switch (pres_init(&stream, argv[i+1], "rb")){
+			switch (pres_init(&stream, argv[i+1], "rb", level)){
 				case PRES_BADMAGICK:
 					error(1, 0, "Magic number not found! File is corrupt or not a resfile at all");
 					/* no break */
@@ -78,24 +79,40 @@ int main(int argc, char** argv){
 					/* no break */
 			}
 			struct header_t* head = &stream.header;
-			printf("entries:%d totalsize:%d\n", head->dictsize, head->totalsize);
+			printf("Entries:%d Totalsize:%d Compression level:%d\n", head->dictsize, head->totalsize, head->level);
+			printf("%-10s %10s %10s %10s\n", "Name", "Size", "Uncomp", "Offset");
 			int j;
 			for(j = 0; j < head->dictsize; ++j){
-				printf("%s: size=%d offset=%d\n", head->dict[j], head->sizes[j], head->offsets[j]);
+				printf("%-10s  %10d  %10d  %10d\n", head->dict[j],
+								head->sizes[j],
+								head->unc_sizes[j],
+								head->offsets[j]);
 			}
+			pres_shutdown(&stream);
 			break;
 		} else if(!strcmp(argv[i], "-r")){
 			if(i+2 == argc) helpexit();
 			struct stream_t stream;
-			if(pres_init(&stream, argv[i+1], "rb") != PRES_SUCCESS)
+			if(pres_init(&stream, argv[i+1], "rb", level) != PRES_SUCCESS)
 				pexit("Failed initializing resource file");
 			char* buf = pres_read1(&stream, argv[i+2]);
-			if(!buf)
+			pres_shutdown(&stream);
+			if(!buf){
 				pexit("key not found");
-			else
+			}else {
 				puts(buf);
+				free(buf);
+			}
 			break;
-		} else {
+		} else if(!strcmp(argv[i], "-c")){
+			if(i+1 == argc) helpexit();
+			level = atoi(argv[i+1]);
+			if(level < 0 || level > 9){
+				printf("Compression level must be in range 0-9\n");
+				exit(1);
+			}
+			i++;
+		}else {
 			printf("Unrecognized option %s\n", argv[i]);
 			helpexit();
 		}

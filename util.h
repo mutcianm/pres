@@ -33,9 +33,11 @@
 struct header_t{
     char**  dict;             //!<array of string keys
     unsigned int* offsets;    //!<array of resource offsets from the beginning of resource block
-    unsigned int* sizes;      //!<array of resource sizes
+    unsigned int* sizes;      //!<array of compressed resource sizes
+    unsigned int* unc_sizes;  //!<array of uncompressed resource sizes
     unsigned int  dictsize;   //!<number of entries
     unsigned int  totalsize;  //!<total size of resources block including header
+    char			  level;	  //!<compression level
     unsigned int  allocated;  //!<current size of allocated table
     unsigned int  pos;        //!<current operating position
 };
@@ -57,9 +59,10 @@ struct stream_t{
  * @param stream pointer to uninitialized structure, it will be properly set up by this function
  * @param outfilename the file containing resources, might as well be program's own executable(argv[0]), if mode is "wb+" file will be truncated.
  * @param mode same syntax as in fopen(), for reading you'd like "rb", for writing "ab+" or "wb+", "b" is important since pres operates in binary mode
+ * @param complevel compression level, must be in range [0..9]
  * @return PRES_SUCCESS on success, else respective error code. @note since most errors happen on system layer, errno can be used to get more info
  */
-int pres_init(struct stream_t* stream, const char* outfilename, const char* mode);
+int pres_init(struct stream_t* stream, const char* outfilename, const char* mode, char complevel);
 
 /**
  * Add file specified by resname to resource package specified by stream.
