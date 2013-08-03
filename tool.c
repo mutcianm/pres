@@ -69,7 +69,8 @@ int main(int argc, char** argv){
 			struct stream_t stream;
 			switch (pres_init(&stream, argv[i+1], "rb", level)){
 				case PRES_BADMAGICK:
-					error(1, 0, "Magic number not found! File is corrupt or not a resfile at all");
+					error(1, 0, "Magic number not found! File is corrupt "
+							"or not a resfile at all");
 					/* no break */
 				case PRES_FILE_ERR:
 					pexit("File IO error");
@@ -81,7 +82,8 @@ int main(int argc, char** argv){
 					/* no break */
 			}
 			struct header_t* head = &stream.header;
-			printf("Entries:%d Totalsize:%d Compression level:%d\n", head->dictsize, head->totalsize, head->level);
+			printf("Entries:%d Totalsize:%d Compression level:%d\n",
+					head->dictsize, head->totalsize, head->level);
 			printf("%-10s %10s %10s %10s\n", "Name", "Size", "Uncomp", "Offset");
 			int j;
 			for(j = 0; j < head->dictsize; ++j){

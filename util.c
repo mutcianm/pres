@@ -24,9 +24,12 @@ void head_init(struct header_t* head, char complevel){
 int head_grow(struct header_t* head){
     unsigned int newsize = head->dictsize * 2;
     head->dict = (char**)realloc(head->dict, sizeof(char**)*newsize);
-    head->sizes = (unsigned int*)realloc(head->sizes, sizeof(unsigned int)*newsize);
-    head->unc_sizes = (unsigned int*)realloc(head->unc_sizes, sizeof(unsigned int)*newsize);
-    head->offsets = (unsigned int*)realloc(head->offsets, sizeof(unsigned int)*newsize);
+    head->sizes = (unsigned int*)realloc(head->sizes,
+    		sizeof(unsigned int)*newsize);
+    head->unc_sizes = (unsigned int*)realloc(head->unc_sizes,
+    		sizeof(unsigned int)*newsize);
+    head->offsets = (unsigned int*)realloc(head->offsets,
+    		sizeof(unsigned int)*newsize);
     if(!head->dict || !head->sizes || !head->offsets){
 #ifdef DEBUG
         perror("Failed to grow header");
@@ -37,7 +40,8 @@ int head_grow(struct header_t* head){
     return PRES_SUCCESS;
 }
 
-int head_add(struct header_t* head, char* str, unsigned int offset, unsigned int size, unsigned unc_size){
+int head_add(struct header_t* head, char* str, unsigned int offset,
+		unsigned int size, unsigned unc_size){
     if(head->dictsize == head->allocated)
         if(head_grow(head) == PRES_MEM_ERROR)
             return PRES_MEM_ERROR;
@@ -72,14 +76,17 @@ int head_write(struct stream_t* stream){
         head_len += sizeof(keylen_f)*fwrite(&keylen_f, sizeof(keylen_f), 1, f);
         head_len += fwrite(head->dict[i], sizeof(char), keylen, f);
         head->sizes[i] = htonl(head->sizes[i]);
-        head_len += sizeof(head->sizes[i])*fwrite(&head->sizes[i], sizeof(head->sizes[i]), 1, f);
+        head_len += sizeof(head->sizes[i])*fwrite(&head->sizes[i],
+        		sizeof(head->sizes[i]), 1, f);
         head->unc_sizes[i] = htonl(head->unc_sizes[i]);
-        head_len += sizeof(head->unc_sizes[i])*fwrite(&head->unc_sizes[i], sizeof(head->unc_sizes[i]), 1, f);
+        head_len += sizeof(head->unc_sizes[i])*fwrite(&head->unc_sizes[i],
+        		sizeof(head->unc_sizes[i]), 1, f);
         head->offsets[i] = htonl(head->offsets[i]);
-        head_len += sizeof(head->offsets[i])*fwrite(&head->offsets[i], sizeof(head->offsets[i]), 1, f);
+        head_len += sizeof(head->offsets[i])*fwrite(&head->offsets[i],
+        		sizeof(head->offsets[i]), 1, f);
     }
-    head_len += sizeof(head->dictsize) + sizeof(head->totalsize) + sizeof(head_len) +
-    		sizeof(head->level)+ sizeof(MAGICK);
+    head_len += sizeof(head->dictsize) + sizeof(head->totalsize) +
+    		sizeof(head_len) +	sizeof(head->level)+ sizeof(MAGICK);
     head->totalsize += head_len;
     head->dictsize = htonl(head->dictsize);
     head->totalsize = htonl(head->totalsize);
@@ -128,7 +135,8 @@ int head_read(FILE* f, struct header_t* head){
     return PRES_SUCCESS;
 }
 
-int pres_init(struct stream_t* stream, const char* outfilename, const char* mode, char complevel){
+int pres_init(struct stream_t* stream, const char* outfilename,
+		const char* mode, char complevel){
     if(!strcmp(mode, "wb+") || !strcmp(mode, "ab") || !strcmp(mode, "ab+")){
         stream->mode = P_MODE_WRITE;
     } else if (!strcmp(mode, "rb")) {
@@ -262,7 +270,8 @@ int pres_add(struct stream_t* stream, char* resname){
     if(!src)
         return PRES_FILE_ERR;
     int i = stream->header.pos - 1;
-    unsigned newoffset = (stream->header.pos == 0) ?  0 : stream->header.sizes[i] + stream->header.offsets[i];
+    unsigned newoffset = (stream->header.pos == 0) ?  0 :
+    		stream->header.sizes[i] + stream->header.offsets[i];
     unsigned unc_size = 0;
     unsigned size = do_add(src, stream->file, stream->header.level, &unc_size);
     if(size == 0)
@@ -343,7 +352,8 @@ unsigned do_read(FILE *source, int offset, char* dest, unsigned size, int level)
     return ret == Z_STREAM_END ? totalread : 0;
 }
 
-int pres_read(struct stream_t* stream, char* resname, char* buf, unsigned int num){
+int pres_read(struct stream_t* stream, char* resname, char* buf,
+		unsigned int num){
 	if((stream->mode == P_MODE_BAD) || (stream->mode == P_MODE_WRITE))
 		return PRES_FILE_ERR;
 	int i = head_find(&stream->header, resname);
@@ -352,7 +362,8 @@ int pres_read(struct stream_t* stream, char* resname, char* buf, unsigned int nu
 	unsigned int offset;
 	offset = stream->header.offsets[i];
 	int read_offset = (int)(stream->header.totalsize - offset);
-	int numread = do_read(stream->file, read_offset, buf, num, stream->header.level);
+	int numread = do_read(stream->file, read_offset, buf, num,
+			stream->header.level);
 	if(numread < num)
 		return PRES_FILE_ERR;
 	return PRES_SUCCESS;
@@ -369,7 +380,8 @@ char* pres_read1(struct stream_t* stream, char* resname){
 	size = stream->header.unc_sizes[i];
 	char* result = (char*)malloc(size);
 	int read_offset = (int)(stream->header.totalsize - offset);
-	int numread = do_read(stream->file, read_offset, result, size, stream->header.level);
+	int numread = do_read(stream->file, read_offset, result, size,
+			stream->header.level);
 	if(numread <= 0){
 		free(result);
 		return NULL;

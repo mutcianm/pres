@@ -1,39 +1,48 @@
-    pres - a small library for embedding resource files
-============================================================
+            pres - a small library for embedding resource files
+===============================================================================
 
 ABOUT: 
 
-PortableRESource is a library/tool which could be used to both embed files in executable and to access them in runtime.
-For example, you're making a small tool which needs to be packed with some external data too big to be embedded
+PortableRESource is a library/tool which could be used to both embed files in
+executable and to access them in runtime. For example, you're making a small 
+tool which needs to be packed with some external data too big to be embedded
 in sources as a hex array, but don't want to mess with external files.
 
 KEYPOINTS: 
 
-* There is no restriction on file formats to be added as well as files to be added to.
-  This means resources can be added to an external file and then be read from it the same way
-  as from the executable itself.
-* Previous point could prove useful for testing: compile resources into separate file and test it before embedding.
+* There is no restriction on file formats to be added as well as files to be 
+  added to. This means resources can be added to an external file and then be 
+  read from it the same way as from the executable itself.
+* Previous point could prove useful for testing: compile resources into separate
+  file and test it before embedding.
 * Resource is accessed by by the filename it had when it was packed.
-* Resources can be optionally compressed(zlib). Note that compression applies to whole resource pack,
-  separate files cannot have different compression levels.
-* Adding is a one-shot operation(at least with prestool). Adding more resources to a file which already has a resource
-  pack will append new resource pack with new resources, not append these resources to an existing pack.
-* In most cases one will only need pres_init(), pres_read1() and pres_shutdown() functions; packing, testing, stripping,
-  etc., are done with prestool, "prestool -h" for more info.
-* Most errors that can happen inside library are system related and can be retrieved from errno.
+* Resources can be optionally compressed(zlib). Note that compression applies to
+  whole resource pack, separate files cannot have different compression levels.
+* Adding is a one-shot operation(at least with prestool). Adding more resources
+  to a file which already has a resource pack will append new resource pack with
+  new resources, not append these resources to an existing pack.
+* In most cases one will only need pres_init(), pres_read1() and pres_shutdown()
+  functions; packing, testing, stripping, etc., are done with prestool, 
+  "prestool -h" for more info.
+* Most errors that can happen inside library are system related and can be 
+  retrieved from errno.
 
 EXAMPLE: 
 1. read a previously packed resource
 
     /* Initialize reader */
-    stream_t stream; //this one is used to identify resource stream you're working with
+    stream_t stream; 
     /*
-    * Initialize. Btw, any file can be passed as the second argument. Compression level may be any number, 
-    * since file is opened for reading and real compression level will be read from header
+    * Initialize. Btw, any file can be passed as the second argument. 
+    * Compression level may be any number, since file is opened for reading and 
+    * real compression level will be read from header
     */
     if(pres_init(&resource, argv[0], "rb", 0) != PRES_SUCCESS)
         perror("pres initialization failed");
-    /* This function will attempt to read entire resource into buffer an return it, if something goes wrong NULL is returned */
+    /*
+    * This function will attempt to read entire resource into buffer an return
+    * it, if something goes wrong NULL is returned 
+    */
     /* Note that resources are accessed by their filename*/
     char* sometext = pres_read1(&stream, "sometext.txt");
     if(sometext)
@@ -47,5 +56,7 @@ EXAMPLE:
     * easy way: ./prestool -c 5 -a myprog icon.png someotherfile wtf.txt
     * hard way: read util.h documentation, read tool.c, write your own prestool
 
-WARNING: embedding huge files(ie making an installer) with this library is not recommended, as it currently desn't support partial loading.
+WARNING:
+Embedding huge files(ie making an installer) with this library is not 
+recommended, as it currently desn't support partial loading.
 
