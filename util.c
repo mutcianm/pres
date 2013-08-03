@@ -2,12 +2,15 @@
 #include<arpa/inet.h>
 
 #define TABLE_INIT_SIZE 8
+
 #define BUF_SIZE 1024
+
 
 //TODO: better error handling
 
+
 void head_init(struct header_t* head){
-    head->dict = (char**)malloc(sizeof(char*)*TABLE_INIT_SIZE);
+    head->dict = (char**)malloc(sizeof(char**)*TABLE_INIT_SIZE);
     head->sizes = (unsigned int*)malloc(sizeof(unsigned int)*TABLE_INIT_SIZE);
     head->offsets = (unsigned int*)malloc(sizeof(unsigned int)*TABLE_INIT_SIZE);
     head->allocated = TABLE_INIT_SIZE;
@@ -18,9 +21,9 @@ void head_init(struct header_t* head){
 
 int head_grow(struct header_t* head){
     unsigned int newsize = head->dictsize * 2;
-    head->dict = (char**)realloc(head->dict, newsize);
-    head->sizes = (unsigned int*)realloc(head->sizes, newsize);
-    head->offsets = (unsigned int*)realloc(head->offsets, newsize);
+    head->dict = (char**)realloc(head->dict, sizeof(char**)*newsize);
+    head->sizes = (unsigned int*)realloc(head->sizes, sizeof(unsigned int)*newsize);
+    head->offsets = (unsigned int*)realloc(head->offsets, sizeof(unsigned int)*newsize);
     if(!head->dict || !head->sizes || !head->offsets){
 #ifdef DEBUG
         perror("Failed to grow header");
@@ -175,14 +178,14 @@ int pres_strip(const char* target){
     return PRES_SUCCESS;
 }
 
+
+
+
 int pres_add(struct stream_t* stream, char* resname){
     if(stream->mode != P_MODE_WRITE)
         return PRES_BAD_MODE;
     FILE* src = fopen(resname, "rb");
     if(!src){
-#ifdef DEBUG
-        perror("Failed to open src file");
-#endif
         return PRES_FILE_ERR;
     }
     unsigned int newoffset;
@@ -198,9 +201,6 @@ int pres_add(struct stream_t* stream, char* resname){
     int numread = 0;
     while((numread = fread(buffer, sizeof(char), BUF_SIZE, src)) != 0){
         if(fwrite(buffer, sizeof(char), numread, stream->file) != numread){
-#ifdef DEBUG
-            perror("Failed to write to res file");
-#endif
             return PRES_FILE_ERR;
         }
     }
@@ -215,6 +215,7 @@ int pres_getsize(struct stream_t* stream, char* key){
 		return -1;
 	return stream->header.sizes[i];
 }
+
 
 int pres_read(struct stream_t* stream, char* resname, char* buf, unsigned int num){
 	if((stream->mode == P_MODE_BAD) || (stream->mode == P_MODE_WRITE))
@@ -256,12 +257,17 @@ int pres_shutdown(struct stream_t* stream){
     if(fclose(stream->file) != 0)
     	return PRES_FILE_ERR;
     stream->file = NULL;
-    if(stream->mode == P_MODE_WRITE)
+    free(stream->header.offsets);
+    free(stream->header.sizes);
+    if(stream->mode == P_MODE_WRITE){
+    	free(stream->header.dict);
     	return PRES_SUCCESS;    //we don't allocate strings in write mode
+    }
     int i;
     for(i = 0; i < stream->header.dictsize; i++){
         free(stream->header.dict[i]);
     }
+    free(stream->header.dict);
     return PRES_SUCCESS;
 }
 
