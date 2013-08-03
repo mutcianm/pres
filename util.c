@@ -4,13 +4,13 @@
 #include<assert.h>
 
 #define TABLE_INIT_SIZE 8
-#define BUF_SIZE 1024
-#define CHUNK 256*1024
+#define BUF_SIZE 4*1024
+#define CHUNK 16*1024
 
 //TODO: better error handling
 
 void head_init(struct header_t* head, char complevel){
-    head->dict = (char**)malloc(sizeof(char*)*TABLE_INIT_SIZE);
+    head->dict = (char**)malloc(sizeof(char**)*TABLE_INIT_SIZE);
     head->sizes = (unsigned int*)malloc(sizeof(unsigned int)*TABLE_INIT_SIZE);
     head->unc_sizes = (unsigned int*)malloc(sizeof(unsigned int)*TABLE_INIT_SIZE);
     head->offsets = (unsigned int*)malloc(sizeof(unsigned int)*TABLE_INIT_SIZE);
@@ -23,10 +23,10 @@ void head_init(struct header_t* head, char complevel){
 
 int head_grow(struct header_t* head){
     unsigned int newsize = head->dictsize * 2;
-    head->dict = (char**)realloc(head->dict, newsize);
-    head->sizes = (unsigned int*)realloc(head->sizes, newsize);
-    head->unc_sizes = (unsigned int*)realloc(head->unc_sizes, newsize);
-    head->offsets = (unsigned int*)realloc(head->offsets, newsize);
+    head->dict = (char**)realloc(head->dict, sizeof(char**)*newsize);
+    head->sizes = (unsigned int*)realloc(head->sizes, sizeof(unsigned int)*newsize);
+    head->unc_sizes = (unsigned int*)realloc(head->unc_sizes, sizeof(unsigned int)*newsize);
+    head->offsets = (unsigned int*)realloc(head->offsets, sizeof(unsigned int)*newsize);
     if(!head->dict || !head->sizes || !head->offsets){
 #ifdef DEBUG
         perror("Failed to grow header");
@@ -78,7 +78,8 @@ int head_write(struct stream_t* stream){
         head->offsets[i] = htonl(head->offsets[i]);
         head_len += sizeof(head->offsets[i])*fwrite(&head->offsets[i], sizeof(head->offsets[i]), 1, f);
     }
-    head_len += sizeof(head->dictsize) + sizeof(head->totalsize) + sizeof(head_len) + sizeof(head->level)+ sizeof(MAGICK);
+    head_len += sizeof(head->dictsize) + sizeof(head->totalsize) + sizeof(head_len) +
+    		sizeof(head->level)+ sizeof(MAGICK);
     head->totalsize += head_len;
     head->dictsize = htonl(head->dictsize);
     head->totalsize = htonl(head->totalsize);
@@ -242,7 +243,7 @@ unsigned int do_add(FILE* src, FILE* dest, int level, unsigned* unc_size){
             totalwritten += have;
             if (fwrite(out, 1, have, dest) != have || ferror(dest)) {
                 (void)deflateEnd(&strm);
-                return Z_ERRNO;
+                return 0;
             }
         } while (strm.avail_out == 0);
         assert(strm.avail_in == 0);     /* all input will be used */
@@ -264,6 +265,8 @@ int pres_add(struct stream_t* stream, char* resname){
     unsigned newoffset = (stream->header.pos == 0) ?  0 : stream->header.sizes[i] + stream->header.offsets[i];
     unsigned unc_size = 0;
     unsigned size = do_add(src, stream->file, stream->header.level, &unc_size);
+    if(size == 0)
+    	return PRES_FILE_ERR;
     head_add(&stream->header, resname, newoffset, size, unc_size);
     return PRES_SUCCESS;
 }
@@ -274,7 +277,7 @@ int pres_getsize(struct stream_t* stream, char* key){
 	int i = head_find(&stream->header, key);
 	if(i < 0)
 		return -1;
-	return stream->header.sizes[i];
+	return stream->header.unc_sizes[i];
 }
 
 unsigned simple_read(FILE *source, int offset, char* dest, unsigned size){
@@ -331,6 +334,7 @@ unsigned do_read(FILE *source, int offset, char* dest, unsigned size, int level)
             have = CHUNK - strm.avail_out;
             totalread += have;
             memcpy(dest + buf_pos, out, have);
+            buf_pos += have;
         } while (strm.avail_out == 0);
         /* done when inflate() says it's done */
     } while (ret != Z_STREAM_END);
@@ -347,8 +351,8 @@ int pres_read(struct stream_t* stream, char* resname, char* buf, unsigned int nu
 		return PRES_NOKEY;
 	unsigned int offset;
 	offset = stream->header.offsets[i];
-	fseek(stream->file, -(int)(stream->header.totalsize - offset), SEEK_END);
-	int numread = fread(buf, sizeof(char), num, stream->file);
+	int read_offset = (int)(stream->header.totalsize - offset);
+	int numread = do_read(stream->file, read_offset, buf, num, stream->header.level);
 	if(numread < num)
 		return PRES_FILE_ERR;
 	return PRES_SUCCESS;

@@ -10,8 +10,10 @@
 
 char* helpstr = "prestool - pres manipulation utility\n"
 		"USAGE\n"
-		"\tprestool [options] <input files ...>\n"
+		"\tprestool [options] <action> <input files ...>\n\n"
 		"OPTIONS\n"
+		" -c NUM\t\tset compression level, must be in 0-9 range\n\n"
+		"ACTIONS\n"
 		" -a resfile\tadd list of input files to resource file resfile\n"
 		" -g target res\tglue existing res resource file to file target\n"
 		" -s target\tstrip resources from file target\n"
@@ -95,12 +97,14 @@ int main(int argc, char** argv){
 			struct stream_t stream;
 			if(pres_init(&stream, argv[i+1], "rb", level) != PRES_SUCCESS)
 				pexit("Failed initializing resource file");
+			unsigned size = pres_getsize(&stream, argv[i+2]);
 			char* buf = pres_read1(&stream, argv[i+2]);
 			pres_shutdown(&stream);
 			if(!buf){
 				pexit("key not found");
 			}else {
-				puts(buf);
+				fwrite(buf, sizeof(char), size, stdout);
+				fflush(stdout);
 				free(buf);
 			}
 			break;
@@ -113,7 +117,7 @@ int main(int argc, char** argv){
 			}
 			i++;
 		}else {
-			printf("Unrecognized option %s\n", argv[i]);
+			printf("Unrecognized argument %s\n", argv[i]);
 			helpexit();
 		}
 	}
